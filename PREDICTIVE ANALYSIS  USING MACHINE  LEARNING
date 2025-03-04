@@ -1,0 +1,105 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_auc_score
+from sklearn.feature_selection import RFE
+
+# Step 1: Load Dataset (Using Iris Dataset for Example)
+iris = load_iris()
+df = pd.DataFrame(iris.data, columns=iris.feature_names)
+df['target'] = iris.target
+
+# Display the first few rows of the dataset
+df.head()
+
+# Step 2: Exploratory Data Analysis (EDA)
+# Visualize feature correlations
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm')
+plt.title('Correlation Heatmap')
+plt.show()
+
+# Step 3: Feature Selection (using Recursive Feature Elimination - RFE)
+X = df.drop(columns=['target'])  # Features
+y = df['target']  # Target variable
+
+# Standardize the features (important for algorithms like Logistic Regression)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Initialize the model and feature selector (Logistic Regression for simplicity)
+model = LogisticRegression(max_iter=200)
+rfe = RFE(model, n_features_to_select=2)  # Select top 2 features
+X_rfe = rfe.fit_transform(X_scaled, y)
+
+# Show the selected features
+selected_features = [X.columns[i] for i in range(len(rfe.support_)) if rfe.support_[i]]
+print("Selected Features:", selected_features)
+
+# Step 4: Train-Test Split
+# Split data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X_rfe, y, test_size=0.2, random_state=42)
+
+# Step 5: Model Training (Using Random Forest Classifier)
+# Initialize and train the model
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+
+# Step 6: Model Evaluation
+# Predictions on the test set
+y_pred = rf_model.predict(X_test)
+
+# Accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy of Random Forest Model: {accuracy:.2f}")
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=iris.target_names, yticklabels=iris.target_names)
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.show()
+
+# Classification Report
+print("Classification Report:\n", classification_report(y_test, y_pred))
+
+# ROC-AUC Score
+y_prob = rf_model.predict_proba(X_test)[:, 1]  # Probabilities for class 1
+roc_auc = roc_auc_score(y_test, y_prob)
+print(f"ROC-AUC Score: {roc_auc:.2f}")
+
+# Step 7: Model Evaluation (Alternative Model - Logistic Regression)
+# Initialize and train Logistic Regression
+lr_model = LogisticRegression(max_iter=200)
+lr_model.fit(X_train, y_train)
+
+# Predictions
+y_pred_lr = lr_model.predict(X_test)
+
+# Accuracy of Logistic Regression
+accuracy_lr = accuracy_score(y_test, y_pred_lr)
+print(f"Accuracy of Logistic Regression Model: {accuracy_lr:.2f}")
+
+# Confusion Matrix for Logistic Regression
+conf_matrix_lr = confusion_matrix(y_test, y_pred_lr)
+sns.heatmap(conf_matrix_lr, annot=True, fmt='d', cmap='Blues', xticklabels=iris.target_names, yticklabels=iris.target_names)
+plt.title('Confusion Matrix (Logistic Regression)')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.show()
+
+# Classification Report for Logistic Regression
+print("Classification Report (Logistic Regression):\n", classification_report(y_test, y_pred_lr))
+
+# ROC-AUC Score for Logistic Regression
+y_prob_lr = lr_model.predict_proba(X_test)[:, 1]
+roc_auc_lr = roc_auc_score(y_test, y_prob_lr)
+print(f"ROC-AUC Score (Logistic Regression): {roc_auc_lr:.2f}")
+
